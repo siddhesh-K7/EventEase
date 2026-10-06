@@ -1,0 +1,138 @@
+@page "/register/{eventId:int?}"
+@inject EventService EventService
+@inject RegistrationService RegistrationService
+@inject UserSessionService SessionService
+
+<PageTitle>Register - EventEase</PageTitle>
+
+<div class="container">
+    <h1 class="mb-4 text-primary">Register for an Event</h1>
+
+    @if (isSuccess)
+    {
+        <div class="alert alert-success">
+            <h4>Registration Successful!</h4>
+            <p>Thank you for registering. You have secured your spot for the event.</p>
+            <a href="events" class="btn btn-success">Browse More Events</a>
+            @if (SessionService.IsLoggedIn)
+            {
+                <a href="dashboard" class="btn btn-outline-success ms-2">View Dashboard</a>
+            }
+        </div>
+    }
+    else
+    {
+        @if (errorMessage != null)
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <div class="card shadow-sm p-4">
+            <EditForm Model="registrationModel" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                
+                <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <InputText @bind-Value="registrationModel.FullName" class="form-control" />
+                    <ValidationMessage For="@(() => registrationModel.FullName)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <InputText @bind-Value="registrationModel.Email" type="email" class="form-control" />
+                    <ValidationMessage For="@(() => registrationModel.Email)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Phone Number</label>
+                    <InputText @bind-Value="registrationModel.PhoneNumber" class="form-control" />
+                    <ValidationMessage For="@(() => registrationModel.PhoneNumber)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">College / Organization</label>
+                    <InputText @bind-Value="registrationModel.CollegeOrganization" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Select Event</label>
+                    <InputSelect @bind-Value="registrationModel.EventId" class="form-select">
+                        <option value="0">-- Select an Event --</option>
+                        @foreach (var ev in EventService.GetAllEvents().Where(e => e.IsRegistrationOpen))
+                        {
+                            <!-- @key to optimize list rendering -->
+                            <option @key="ev.Id" value="@ev.Id">@ev.Name - @ev.Date.ToString("MMM dd") (@ev.AvailableSeats seats left)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => registrationModel.EventId)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Number of Tickets</label>
+                    <InputNumber @bind-Value="registrationModel.NumberOfTickets" min="1" max="10" class="form-control" />
+                    <ValidationMessage For="@(() => registrationModel.NumberOfTickets)" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Submit Registration</button>
+                <ValidationSummary class="mt-3 text-danger" />
+            </EditForm>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int? EventId { get; set; }
+
+    private Registration registrationModel = new();
+    private bool isSuccess = false;
+    private string? errorMessage = null;
+
+    protected override void OnInitialized()
+    {
+        if (EventId.HasValue)
+        {
+            registrationModel.EventId = EventId.Value;
+        }
+        
+        // Null check and populate from session if available
+        if (SessionService.IsLoggedIn && SessionService.CurrentUser != null)
+        {
+            registrationModel.FullName = SessionService.CurrentUser.Name;
+            registrationModel.Email = SessionService.CurrentUser.Email;
+        }
+    }
+
+    private void HandleValidSubmit()
+    {
+        errorMessage = null;
+
+        var selectedEvent = EventService.GetEventById(registrationModel.EventId);
+        
+        // Null check and business validation
+        if (selectedEvent == null)
+        {
+            errorMessage = "Please select a valid event.";
+            return;
+        }
+
+        if (registrationModel.NumberOfTickets > selectedEvent.AvailableSeats)
+        {
+            errorMessage = $"Only {selectedEvent.AvailableSeats} seats are available for this event.";
+            return;
+        }
+
+        // Process registration and reduce seats
+        bool seatsReduced = EventService.ReduceAvailableSeats(selectedEvent.Id, registrationModel.NumberOfTickets);
+        
+        if (seatsReduced)
+        {
+            RegistrationService.AddRegistration(registrationModel);
+            isSuccess = true;
+        }
+        else
+        {
+            errorMessage = "Failed to secure tickets. The event might be fully booked.";
+        }
+    }
+}

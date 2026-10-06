@@ -1,0 +1,44 @@
+@inherits LayoutComponentBase
+@inject UserSessionService SessionService
+@implements IDisposable
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            @if (SessionService.IsLoggedIn)
+            {
+                <span class="me-3">Hello, @SessionService.CurrentUser?.Name!</span>
+                <button class="btn btn-sm btn-outline-danger" @onclick="Logout">Logout</button>
+            }
+            else
+            {
+                <a href="login">Login</a>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        SessionService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        SessionService.OnChange -= StateHasChanged;
+    }
+
+    private void Logout()
+    {
+        SessionService.Logout();
+    }
+}

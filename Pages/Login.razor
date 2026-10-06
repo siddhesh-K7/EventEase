@@ -1,0 +1,54 @@
+@page "/login"
+@inject UserSessionService SessionService
+@inject NavigationManager NavManager
+
+<PageTitle>Login - EventEase</PageTitle>
+
+<div class="container d-flex justify-content-center">
+    <div class="card shadow-sm mt-5" style="width: 400px;">
+        <div class="card-body">
+            <h3 class="card-title text-center mb-4 text-primary">Login</h3>
+            
+            <EditForm Model="userModel" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+                
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <InputText @bind-Value="userModel.Name" class="form-control" />
+                    <ValidationMessage For="@(() => userModel.Name)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <InputText @bind-Value="userModel.Email" type="email" class="form-control" />
+                    <ValidationMessage For="@(() => userModel.Email)" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel userModel = new();
+
+    private void HandleLogin()
+    {
+        if (!string.IsNullOrWhiteSpace(userModel.Name) && !string.IsNullOrWhiteSpace(userModel.Email))
+        {
+            SessionService.Login(userModel.Name, userModel.Email);
+            NavManager.NavigateTo("dashboard");
+        }
+    }
+
+    public class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Name { get; set; } = string.Empty;
+        
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+    }
+}

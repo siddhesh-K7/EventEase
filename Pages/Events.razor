@@ -1,0 +1,18 @@
+@page "/events"
+@inject EventService EventService
+
+<PageTitle>All Events - EventEase</PageTitle>
+
+<div class="container">
+    <h1 class="mb-4 text-primary">All Events</h1>
+    
+    <div class="row">
+        @foreach (var ev in EventService.GetAllEvents())
+        {
+            <!-- @key optimizes Blazor rendering by tracking elements efficiently -->
+            <div class="col-md-4 mb-4" @key="ev.Id">
+                <EventCard Event="ev" />
+            </div>
+        }
+    </div>
+</div>

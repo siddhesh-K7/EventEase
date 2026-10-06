@@ -1,0 +1,135 @@
+@page "/attendance"
+@inject AttendanceService AttendanceService
+@inject UserSessionService SessionService
+@inject NavigationManager NavManager
+
+<PageTitle>Attendance Tracker - EventEase</PageTitle>
+
+<div class="container">
+    @if (!SessionService.IsLoggedIn)
+    {
+        <div class="alert alert-warning">
+            You must be logged in as an administrator to view attendance. <a href="login">Login here</a>.
+        </div>
+    }
+    else
+    {
+        <h1 class="mb-4 text-primary">Attendance Tracker</h1>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white text-center shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Total Registered</h5>
+                        <p class="display-5">@TotalRegistered</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white text-center shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Total Attended</h5>
+                        <p class="display-5">@TotalAttended</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white text-center shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Total Absent</h5>
+                        <p class="display-5">@TotalAbsent</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white text-center shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Attendance Rate</h5>
+                        <p class="display-5">@AttendancePercentage%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (attendances.Count == 0)
+        {
+            <div class="alert alert-info">No registrations found yet.</div>
+        }
+        else
+        {
+            <div class="table-responsive shadow-sm">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Participant Name</th>
+                            <th>Email</th>
+                            <th>Event</th>
+                            <th>Registration Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in attendances)
+                        {
+                            <tr @key="record.Id" class="@(record.IsPresent ? "table-success" : "")">
+                                <td>@record.Registration.FullName</td>
+                                <td>@record.Registration.Email</td>
+                                <td>@record.Event.Name</td>
+                                <td>@record.Registration.DateOfRegistration.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    @if (record.IsPresent)
+                                    {
+                                        <span class="badge bg-success">Present</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Absent</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm @(record.IsPresent ? "btn-outline-danger" : "btn-outline-success")" 
+                                            @onclick="() => ToggleAttendance(record.Id, !record.IsPresent)">
+                                        Mark @(record.IsPresent ? "Absent" : "Present")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Attendance> attendances = new();
+
+    // Computed properties for optimization instead of manual calculations everywhere
+    private int TotalRegistered => attendances.Count;
+    private int TotalAttended => attendances.Count(a => a.IsPresent);
+    private int TotalAbsent => attendances.Count(a => !a.IsPresent);
+    private string AttendancePercentage => TotalRegistered == 0 ? "0" : ((double)TotalAttended / TotalRegistered * 100).ToString("0.0");
+
+    protected override void OnInitialized()
+    {
+        if (!SessionService.IsLoggedIn)
+        {
+            NavManager.NavigateTo("login");
+            return;
+        }
+
+        LoadData();
+    }
+
+    private void LoadData()
+    {
+        attendances = AttendanceService.GetAllAttendances();
+    }
+
+    private void ToggleAttendance(int id, bool status)
+    {
+        AttendanceService.UpdateAttendance(id, status);
+        LoadData(); // Refresh list to update statistics
+    }
+}

@@ -1,0 +1,85 @@
+@page "/dashboard"
+@inject UserSessionService SessionService
+@inject RegistrationService RegistrationService
+@inject EventService EventService
+@inject NavigationManager NavManager
+
+<PageTitle>Dashboard - EventEase</PageTitle>
+
+<div class="container">
+    @if (!SessionService.IsLoggedIn)
+    {
+        <div class="alert alert-warning">
+            You must be logged in to view the dashboard. <a href="login">Login here</a>.
+        </div>
+    }
+    else
+    {
+        <h1 class="mb-4 text-primary">Welcome, @SessionService.CurrentUser?.Name!</h1>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-info text-white shadow-sm h-100">
+                    <div class="card-body">
+                        <h4>Your Registrations</h4>
+                        <p class="display-4">@userRegistrations.Count</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="mb-3">Your Events</h3>
+        @if (userRegistrations.Count == 0)
+        {
+            <div class="alert alert-info">You haven't registered for any events yet. <a href="events">Browse Events</a></div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Event Name</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Tickets</th>
+                            <th>Registration Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reg in userRegistrations)
+                        {
+                            var ev = EventService.GetEventById(reg.EventId);
+                            <tr @key="reg.Id">
+                                <td>@(ev?.Name ?? "Unknown Event")</td>
+                                <td>@(ev?.Date.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                <td>@(ev?.Location ?? "N/A")</td>
+                                <td>@reg.NumberOfTickets</td>
+                                <td>@reg.DateOfRegistration.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Registration> userRegistrations = new();
+
+    protected override void OnInitialized()
+    {
+        if (!SessionService.IsLoggedIn)
+        {
+            NavManager.NavigateTo("login");
+            return;
+        }
+
+        // Null check handled by IsLoggedIn
+        if (SessionService.CurrentUser != null)
+        {
+            userRegistrations = RegistrationService.GetRegistrationsByEmail(SessionService.CurrentUser.Email);
+        }
+    }
+}

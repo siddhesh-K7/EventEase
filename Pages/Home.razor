@@ -1,0 +1,24 @@
+@page "/"
+@inject EventService EventService
+
+<PageTitle>Home - EventEase</PageTitle>
+
+<div class="p-5 mb-4 bg-light rounded-3 text-center">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold text-primary">Welcome to EventEase</h1>
+        <p class="col-md-8 mx-auto fs-4">Discover and register for the best events happening around you. We manage everything seamlessly.</p>
+        <a href="events" class="btn btn-primary btn-lg">Browse Events</a>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <h2 class="mb-4">Upcoming Highlighted Events</h2>
+    <div class="row">
+        @foreach (var ev in EventService.GetAllEvents().Take(3))
+        {
+            <div class="col-md-4 mb-4" @key="ev.Id">
+                <EventCard Event="ev" />
+            </div>
+        }
+    </div>
+</div>
